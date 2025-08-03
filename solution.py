@@ -1,66 +1,68 @@
+import sys
+
 def solve():
-    X = input().strip()
-    Y = input().strip()
-    S, R = map(int, input().split())
+    X = sys.stdin.readline().strip()
+    Y = sys.stdin.readline().strip()
+    S, R = map(int, sys.stdin.readline().split())
     
     n = len(X)
     m = len(Y)
     
-    # Reverse of Y
+    # Quick impossible check
+    if not X:
+        print(0)
+        return
+    
+    # Check if all characters in X exist in Y or Y_rev
+    Y_chars = set(Y)
+    if not all(c in Y_chars for c in X):
+        print("Impossible")
+        return
+    
     Y_rev = Y[::-1]
     
     # dp[i] = (min_substrings, min_factor) to form X[0:i]
-    # Initialize with impossible values
     INF = float('inf')
     dp = [(INF, INF) for _ in range(n + 1)]
-    dp[0] = (0, 0)  # Empty string needs 0 substrings and 0 factor
+    dp[0] = (0, 0)
     
     for i in range(1, n + 1):
-        # Try all possible last substrings ending at position i
-        for j in range(i):
-            if dp[j][0] == INF:
+        # Try substrings of different lengths ending at position i
+        # Limit maximum length to avoid excessive computation
+        max_len = min(i, m, 100)  # Reasonable upper bound
+        
+        for length in range(1, max_len + 1):
+            j = i - length
+            if j < 0 or dp[j][0] == INF:
                 continue
                 
             substring = X[j:i]
-            substring_len = len(substring)
+            prev_substrings, prev_factor = dp[j]
             
-            # Check if substring exists in Y
-            found_in_Y = False
-            found_in_Y_rev = False
+            # Use Python's efficient substring search
+            found_in_Y = substring in Y
+            found_in_Y_rev = substring in Y_rev
             
-            # Check in normal Y
-            for k in range(m - substring_len + 1):
-                if Y[k:k + substring_len] == substring:
-                    found_in_Y = True
-                    break
+            if not found_in_Y and not found_in_Y_rev:
+                continue
             
-            # Check in reversed Y
-            for k in range(m - substring_len + 1):
-                if Y_rev[k:k + substring_len] == substring:
-                    found_in_Y_rev = True
-                    break
-            
-            # Update dp[i] if we can form X[0:i]
-            if found_in_Y or found_in_Y_rev:
-                prev_substrings, prev_factor = dp[j]
+            # Try using substring from normal Y
+            if found_in_Y:
+                new_substrings = prev_substrings + 1
+                new_factor = prev_factor + S
                 
-                # Try using substring from normal Y
-                if found_in_Y:
-                    new_substrings = prev_substrings + 1
-                    new_factor = prev_factor + S
-                    
-                    if (new_substrings < dp[i][0] or 
-                        (new_substrings == dp[i][0] and new_factor < dp[i][1])):
-                        dp[i] = (new_substrings, new_factor)
+                if (new_substrings < dp[i][0] or 
+                    (new_substrings == dp[i][0] and new_factor < dp[i][1])):
+                    dp[i] = (new_substrings, new_factor)
+            
+            # Try using substring from reversed Y
+            if found_in_Y_rev:
+                new_substrings = prev_substrings + 1
+                new_factor = prev_factor + R
                 
-                # Try using substring from reversed Y
-                if found_in_Y_rev:
-                    new_substrings = prev_substrings + 1
-                    new_factor = prev_factor + R
-                    
-                    if (new_substrings < dp[i][0] or 
-                        (new_substrings == dp[i][0] and new_factor < dp[i][1])):
-                        dp[i] = (new_substrings, new_factor)
+                if (new_substrings < dp[i][0] or 
+                    (new_substrings == dp[i][0] and new_factor < dp[i][1])):
+                    dp[i] = (new_substrings, new_factor)
     
     if dp[n][0] == INF:
         print("Impossible")
